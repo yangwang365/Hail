@@ -86,6 +86,7 @@ object HailData {
         MODE_PRIVAPP_STOP,
         MODE_PRIVAPP_DISABLE
     )
+    const val TAG_MODE_PREFIX = "tag_mode_"
     const val BIOMETRIC_LOGIN = "biometric_login"
     const val APP_THEME = "app_theme"
     const val FOLLOW_SYSTEM = "follow_system"
@@ -229,6 +230,22 @@ object HailData {
             }
             toString()
         })
+    }
+
+    fun getTagWorkingMode(tagId: Int): String =
+        sp.getString("$TAG_MODE_PREFIX$tagId", null) ?: workingMode
+
+    fun setTagWorkingMode(tagId: Int, mode: String?) {
+        if (mode == null) sp.edit { remove("$TAG_MODE_PREFIX$tagId") }
+        else sp.edit { putString("$TAG_MODE_PREFIX$tagId", mode) }
+    }
+
+    fun getAppWorkingMode(appInfo: AppInfo): String {
+        appInfo.tagIdList.forEach { tagId ->
+            val mode = sp.getString("$TAG_MODE_PREFIX$tagId", null)
+            if (mode != null) return mode
+        }
+        return workingMode
     }
 
     fun changeAppsSort(sort: String) = sp.edit { putString(SORT_BY, sort) }
