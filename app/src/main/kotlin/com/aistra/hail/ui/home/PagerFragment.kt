@@ -51,6 +51,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 
 class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAdapter.OnItemLongClickListener,
     MenuProvider {
@@ -493,29 +494,75 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
 
     private fun exportToClipboard(list: List<AppInfo>) {
         if (list.isEmpty()) return
-        HUI.copyText(if (list.size > 1) JSONArray().run {
-            list.forEach { put(it.packageName) }
-            toString()
-        } else list[0].packageName)
-        HUI.showToast(
-            R.string.msg_exported, if (list.size > 1) list.size.toString() else list[0].name
-        )
+        if (list.size == 1) {
+            HUI.copyText(list[0].packageName)
+            HUI.showToast(R.string.msg_exported, list[0].name)
+            return
+        }
+        val tagIds = list.flatMap { it.tagIdList }.toSet()
+        val tagsJson = JSONArray().apply {
+            HailData.tags.filter { it.second in tagIds }.forEach { (tagName, id) ->
+                put(JSONObject().put(HailData.KEY_TAG, tagName).put("id", id))
+            }
+        }
+        val appsJson = JSONArray().apply {
+            list.forEach { appInfo ->
+                val tagNames = JSONArray()
+                appInfo.tagIdList.forEach { tagId ->
+                    HailData.tags.find { it.second == tagId }?.first?.let { tagNames.put(it) }
+                }
+                put(JSONObject().put(HailData.KEY_PACKAGE, appInfo.packageName).put("tags", tagNames))
+            }
+        }
+        HUI.copyText(JSONObject().put("tags", tagsJson).put("apps", appsJson).toString())
+        HUI.showToast(R.string.msg_exported, list.size.toString())
     }
 
     private fun importFromClipboard() = runCatching {
         val str = HUI.pasteText() ?: throw IllegalArgumentException()
-        val json = if (str.contains('[')) JSONArray(
-            str.substring(
-                str.indexOf('[')..str.indexOf(']', str.indexOf('['))
-            )
-        )
-        else JSONArray().put(str)
         var i = 0
-        for (index in 0 until json.length()) {
-            val pkg = json.getString(index)
-            if (HPackages.getApplicationInfoOrNull(pkg) != null && !HailData.isChecked(pkg)) {
-                HailData.addCheckedApp(pkg, tag.second, false)
-                i++
+        if (str.contains('{')) {
+            val json = JSONObject(str.substring(str.indexOf('{')..str.lastIndexOf('}')))
+            json.optJSONArray("tags")?.let { tagsArray ->
+                for (index in 0 until tagsArray.length()) {
+                    val tagObj = tagsArray.getJSONObject(index)
+                    val tagName = tagObj.getString(HailData.KEY_TAG)
+                    if (HailData.tags.none { it.first == tagName }) {
+                        HailData.tags.add(tagName to tagName.hashCode())
+                        adapter.notifyItemInserted(adapter.itemCount - 1)
+                    }
+                }
+                if (query.isEmpty() && tabs.tabCount > 1) tabs.isVisible = true
+                HailData.saveTags()
+            }
+            val appsArray = json.getJSONArray("apps")
+            for (index in 0 until appsArray.length()) {
+                val appObj = appsArray.getJSONObject(index)
+                val pkg = appObj.getString(HailData.KEY_PACKAGE)
+                if (HPackages.getApplicationInfoOrNull(pkg) != null && !HailData.isChecked(pkg)) {
+                    val tagNames = appObj.optJSONArray("tags")
+                    val tagIdList = if (tagNames != null && tagNames.length() > 0) {
+                        MutableList(tagNames.length()) { idx ->
+                            HailData.tags.find { it.first == tagNames.getString(idx) }?.second ?: tag.second
+                        }
+                    } else mutableListOf(tag.second)
+                    HailData.checkedList.add(AppInfo(pkg, tagIdList = tagIdList))
+                    i++
+                }
+            }
+        } else {
+            val json = if (str.contains('[')) JSONArray(
+                str.substring(
+                    str.indexOf('[')..str.indexOf(']', str.indexOf('['))
+                )
+            )
+            else JSONArray().put(str)
+            for (index in 0 until json.length()) {
+                val pkg = json.getString(index)
+                if (HPackages.getApplicationInfoOrNull(pkg) != null && !HailData.isChecked(pkg)) {
+                    HailData.addCheckedApp(pkg, tag.second, false)
+                    i++
+                }
             }
         }
         if (i > 0) {
