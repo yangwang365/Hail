@@ -1,9 +1,14 @@
 package com.aistra.hail.utils
 
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.Drawable
+import android.os.Build
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
@@ -16,6 +21,8 @@ import com.aistra.hail.app.HailData
 import me.zhanghai.android.appiconloader.AppIconLoader
 
 object HShortcuts {
+    private const val PIN_RESULT_ACTION = "${com.aistra.hail.BuildConfig.APPLICATION_ID}.PIN_SHORTCUT_RESULT"
+
     private val iconLoader by lazy {
         AppIconLoader(
             app.resources.getDimensionPixelSize(R.dimen.app_icon_size),
@@ -24,28 +31,59 @@ object HShortcuts {
         )
     }
 
-    fun addPinShortcut(icon: Drawable, id: String, label: CharSequence, intent: Intent) {
-        addPinShortcut(getDrawableIcon(icon), id, label, intent)
+    fun addPinShortcut(icon: Drawable, id: String, label: CharSequence, intent: Intent, onResult: ((Boolean) -> Unit)? = null) {
+        addPinShortcut(getDrawableIcon(icon), id, label, intent, onResult)
     }
 
-    fun addPinShortcut(appInfo: AppInfo, id: String, label: CharSequence, intent: Intent) {
+    fun addPinShortcut(appInfo: AppInfo, id: String, label: CharSequence, intent: Intent, onResult: ((Boolean) -> Unit)? = null) {
         appInfo.applicationInfo?.let {
             val icon = IconPack.loadIcon(it.packageName) ?: iconLoader.loadIcon(it)
-            addPinShortcut(IconCompat.createWithBitmap(icon), id, label, intent)
+            addPinShortcut(IconCompat.createWithBitmap(icon), id, label, intent, onResult)
         } ?: run {
-            addPinShortcut(app.packageManager.defaultActivityIcon, id, label, intent)
+            addPinShortcut(app.packageManager.defaultActivityIcon, id, label, intent, onResult)
         }
     }
 
-    private fun addPinShortcut(icon: IconCompat, id: String, label: CharSequence, intent: Intent) {
-        if (ShortcutManagerCompat.isRequestPinShortcutSupported(app)) {
-            val shortcut =
-                ShortcutInfoCompat.Builder(app, id).setIcon(icon).setShortLabel(label)
-                    .setIntent(intent).build()
+    private fun addPinShortcut(icon: IconCompat, id: String, label: CharSequence, intent: Intent, onResult: ((Boolean) -> Unit)? = null) {
+        if (!ShortcutManagerCompat.isRequestPinShortcutSupported(app)) {
+            HUI.showToast(R.string.operation_failed, app.getString(R.string.action_add_pin_shortcut))
+            onResult?.invoke(false)
+            return
+        }
+        val shortcut =
+            ShortcutInfoCompat.Builder(app, id).setIcon(icon).setShortLabel(label)
+                .setIntent(intent).build()
+        if (onResult != null) {
+            val resultIntent = Intent(PIN_RESULT_ACTION).apply { setPackage(app.packageName) }
+            val pendingIntent = PendingIntent.getBroadcast(
+                app, id.hashCode(), resultIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    app.unregisterReceiver(this)
+                    val accepted = intent?.getIntExtra(
+                        ShortcutManagerCompat.EXTRA_SHORTCUT_RESULT,
+                        ShortcutManagerCompat.RESULT_SHORTCUT_NOT_PINNED
+                    ) == ShortcutManagerCompat.RESULT_SHORTCUT_PINNED
+                    onResult(accepted)
+                }
+            }
+            val filter = IntentFilter(PIN_RESULT_ACTION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                app.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                app.registerReceiver(receiver, filter)
+            }
+            val success = ShortcutManagerCompat.requestPinShortcut(app, shortcut, pendingIntent.intentSender)
+            if (!success) {
+                app.unregisterReceiver(receiver)
+                onResult(false)
+            }
+        } else {
             ShortcutManagerCompat.requestPinShortcut(app, shortcut, null)
-        } else HUI.showToast(
-            R.string.operation_failed, app.getString(R.string.action_add_pin_shortcut)
-        )
+        }
     }
 
     fun addDynamicShortcut(packageName: String) {

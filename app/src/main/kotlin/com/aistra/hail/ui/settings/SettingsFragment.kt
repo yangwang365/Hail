@@ -34,6 +34,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.aistra.hail.HailApp.Companion.app
 import com.aistra.hail.R
+import com.aistra.hail.app.AppInfo
 import com.aistra.hail.app.AppManager
 import com.aistra.hail.app.HailApi
 import com.aistra.hail.app.HailData
@@ -429,17 +430,21 @@ class SettingsFragment : MainFragment(), MenuProvider {
                                 return@setItems
                             }
                             HUI.showToast(getString(R.string.msg_launch_tag_shortcuts, apps.size), true)
-                            apps.forEach { appInfo ->
-                                HShortcuts.addPinShortcut(
-                                    appInfo,
-                                    appInfo.packageName,
-                                    appInfo.name,
-                                    HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, appInfo.packageName)
-                                )
-                            }
+                            pinLaunchShortcutsSequentially(apps, 0)
                         }.setNegativeButton(android.R.string.cancel, null).show()
                 }
             }.setNegativeButton(android.R.string.cancel, null).show()
+    }
+
+    private fun pinLaunchShortcutsSequentially(apps: List<AppInfo>, index: Int) {
+        if (index >= apps.size || !isAdded) return
+        val appInfo = apps[index]
+        HShortcuts.addPinShortcut(
+            appInfo,
+            appInfo.packageName,
+            appInfo.name,
+            HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, appInfo.packageName)
+        ) { _ -> pinLaunchShortcutsSequentially(apps, index + 1) }
     }
 
     fun onWorkingModeChange(rememberState: MutableState<String>, mode: String): Boolean {
