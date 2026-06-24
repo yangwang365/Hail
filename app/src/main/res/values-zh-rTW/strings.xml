@@ -28,6 +28,8 @@
     <string name="action_tag_add">新增標籤</string>
     <string name="action_tag_remove">移除標籤</string>
     <string name="action_tag_set">標籤分組</string>
+    <string name="action_tag_move_left">左移</string>
+    <string name="action_tag_move_right">右移</string>
     <string name="action_add_pin_shortcut">新增至主畫面</string>
     <string name="action_export_clipboard">匯出至剪貼簿</string>
     <string name="action_import_clipboard">從剪貼簿匯入</string>
@@ -127,6 +129,8 @@
     <string name="mode_shizuku_hide">Shizuku - 隱藏</string>
     <string name="action_freeze_tag">標籤凍結</string>
     <string name="action_unfreeze_tag">標籤解凍</string>
+    <string name="action_launch_tag">為標籤新增解凍捷徑</string>
+    <string name="msg_launch_tag_shortcuts">正在新增 %1$d 個解凍捷徑</string>
     <string name="icon_pack">圖示包</string>
     <string name="action_select_all">全選</string>
     <string name="mode_dhizuku_hide">Dhizuku - 隱藏</string>

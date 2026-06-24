@@ -232,6 +232,18 @@ object HailData {
         })
     }
 
+    /**
+     * Move tag from [fromPosition] to [toPosition]. Position 0 (default) is fixed.
+     */
+    fun moveTag(fromPosition: Int, toPosition: Int) {
+        if (fromPosition == 0 || toPosition == 0) return
+        if (fromPosition !in 1 until tags.size || toPosition !in 1 until tags.size) return
+        if (fromPosition == toPosition) return
+        val tag = tags.removeAt(fromPosition)
+        tags.add(toPosition, tag)
+        saveTags()
+    }
+
     fun getTagWorkingMode(tagId: Int): String =
         sp.getString("$TAG_MODE_PREFIX$tagId", null) ?: workingMode
 

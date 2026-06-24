@@ -463,6 +463,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
         if (position != 0) {
             items.add(R.string.action_tag_set)
             items.add(R.string.action_tag_mode)
+            if (position > 1) items.add(R.string.action_tag_move_left)
+            if (position < HailData.tags.size - 1) items.add(R.string.action_tag_move_right)
             items.add(R.string.action_tag_remove)
         }
         MaterialAlertDialogBuilder(activity).setTitle(tag.first)
@@ -472,6 +474,18 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                     R.string.action_tag_set -> showTagDialog()
                     R.string.action_tag_mode -> showTagModeDialog()
                     R.string.action_tag_remove -> removeTag()
+                    R.string.action_tag_move_left -> {
+                        HailData.moveTag(position, position - 1)
+                        adapter.notifyDataSetChanged()
+                        tabs.getTabAt(position - 1)?.select()
+                        updateCurrentList()
+                    }
+                    R.string.action_tag_move_right -> {
+                        HailData.moveTag(position, position + 1)
+                        adapter.notifyDataSetChanged()
+                        tabs.getTabAt(position + 1)?.select()
+                        updateCurrentList()
+                    }
                 }
             }.setNegativeButton(android.R.string.cancel, null).show()
     }

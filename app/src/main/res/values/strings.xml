@@ -130,6 +130,8 @@
     <string name="action_none">None</string>
     <string name="action_freeze_tag">Freeze tag</string>
     <string name="action_unfreeze_tag">Unfreeze tag</string>
+    <string name="action_launch_tag">Launch shortcuts for tag</string>
+    <string name="msg_launch_tag_shortcuts">Adding %1$d launch shortcuts</string>
     <string name="icon_pack">Icon pack</string>
     <string name="action_select_all">Select all</string>
     <string name="action_terminal">Terminal</string>
@@ -145,6 +147,8 @@
     <string name="command">Command</string>
     <string name="tag">Tag</string>
     <string name="action_tag_mode">Working mode</string>
+    <string name="action_tag_move_left">Move left</string>
+    <string name="action_tag_move_right">Move right</string>
     <string name="mode_follow_system">Default (follow system setting)</string>
     <string name="freeze_system_app">Freezing or uninstalling system applications may cause the device to bootloop. Make sure you know what you are doing and backup your data in advance or use recovery that supports file management.</string>
     <string name="action_continue">Continue</string>
