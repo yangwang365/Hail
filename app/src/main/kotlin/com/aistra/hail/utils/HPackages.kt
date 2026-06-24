@@ -2,6 +2,7 @@ package com.aistra.hail.utils
 
 import android.app.ActivityManager
 import android.app.AppOpsManager
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
@@ -73,6 +74,19 @@ object HPackages {
 
     fun canUninstallNormally(packageName: String): Boolean =
         getApplicationInfoOrNull(packageName)?.sourceDir?.startsWith("/data") ?: false
+
+    /**
+     * Whether the app declares a launcher activity (i.e. would show in launcher when unfrozen).
+     * Uses MATCH_DISABLED_COMPONENTS so it works even when the app is frozen via Disable/Hide.
+     */
+    fun hasLauncherEntry(packageName: String): Boolean {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setPackage(packageName)
+        val flags = PackageManager.MATCH_DISABLED_COMPONENTS or PackageManager.MATCH_UNINSTALLED_PACKAGES
+        return if (HTarget.T) app.packageManager.queryIntentActivities(
+            intent, PackageManager.ResolveInfoFlags.of(flags.toLong())
+        ).isNotEmpty()
+        else @Suppress("DEPRECATION") app.packageManager.queryIntentActivities(intent, flags).isNotEmpty()
+    }
 
     fun forceStopApp(packageName: String): Boolean = runCatching {
         app.getSystemService<ActivityManager>()!!.let {

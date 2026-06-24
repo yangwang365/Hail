@@ -423,7 +423,8 @@ class SettingsFragment : MainFragment(), MenuProvider {
                             val apps = HailData.checkedList.filter { tagId in it.tagIdList }
                                 .filter {
                                     val mode = HailData.getAppWorkingMode(it)
-                                    mode.endsWith(HailData.HIDE) || mode.endsWith(HailData.DISABLE)
+                                    (mode.endsWith(HailData.HIDE) || mode.endsWith(HailData.DISABLE))
+                                        && HPackages.hasLauncherEntry(it.packageName)
                                 }
                             if (apps.isEmpty()) {
                                 HUI.showToast(R.string.operation_failed)
