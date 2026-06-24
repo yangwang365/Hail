@@ -415,6 +415,29 @@ class SettingsFragment : MainFragment(), MenuProvider {
                         getString(R.string.action_lock_freeze),
                         Intent(HailApi.ACTION_LOCK_FREEZE)
                     )
+
+                    7 -> MaterialAlertDialogBuilder(requireActivity()).setTitle(R.string.action_launch_tag)
+                        .setItems(HailData.tags.map { it.first }.toTypedArray()) { _, index ->
+                            val tagId = HailData.tags[index].second
+                            val apps = HailData.checkedList.filter { tagId in it.tagIdList }
+                                .filter {
+                                    val mode = HailData.getAppWorkingMode(it)
+                                    mode.endsWith(HailData.HIDE) || mode.endsWith(HailData.DISABLE)
+                                }
+                            if (apps.isEmpty()) {
+                                HUI.showToast(R.string.operation_failed)
+                                return@setItems
+                            }
+                            HUI.showToast(getString(R.string.msg_launch_tag_shortcuts, apps.size), true)
+                            apps.forEach { appInfo ->
+                                HShortcuts.addPinShortcut(
+                                    appInfo,
+                                    appInfo.packageName,
+                                    appInfo.name,
+                                    HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, appInfo.packageName)
+                                )
+                            }
+                        }.setNegativeButton(android.R.string.cancel, null).show()
                 }
             }.setNegativeButton(android.R.string.cancel, null).show()
     }
