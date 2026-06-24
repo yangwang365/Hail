@@ -62,11 +62,7 @@ object HShortcuts {
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
                     app.unregisterReceiver(this)
-                    val accepted = intent?.getIntExtra(
-                        ShortcutManagerCompat.EXTRA_SHORTCUT_RESULT,
-                        ShortcutManagerCompat.RESULT_SHORTCUT_NOT_PINNED
-                    ) == ShortcutManagerCompat.RESULT_SHORTCUT_PINNED
-                    onResult(accepted)
+                    onResult(true)
                 }
             }
             val filter = IntentFilter(PIN_RESULT_ACTION)
