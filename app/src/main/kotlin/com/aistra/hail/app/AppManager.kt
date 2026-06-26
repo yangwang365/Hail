@@ -37,7 +37,6 @@ object AppManager {
                 setAppFrozen(it.packageName, frozen, mode) -> {
                     i++
                     name = it.name.toString()
-                    HShortcuts.updateShortcutFrozenState(it.packageName, frozen)
                 }
 
                 it.applicationInfo != null -> denied = true
@@ -46,8 +45,9 @@ object AppManager {
         return if (denied && i == 0) null else if (i == 1) name else i.toString()
     }
 
-    fun setAppFrozen(packageName: String, frozen: Boolean, mode: String = HailData.workingMode): Boolean =
-        packageName != BuildConfig.APPLICATION_ID && when (mode) {
+    fun setAppFrozen(packageName: String, frozen: Boolean, mode: String = HailData.workingMode): Boolean {
+        if (packageName == BuildConfig.APPLICATION_ID) return false
+        val success = when (mode) {
             HailData.MODE_OWNER_HIDE -> HPolicy.setAppHidden(packageName, frozen)
             HailData.MODE_OWNER_SUSPEND -> HPolicy.setAppSuspended(packageName, frozen)
             HailData.MODE_DHIZUKU_HIDE -> HDhizuku.setAppHidden(packageName, frozen)
@@ -66,6 +66,9 @@ object AppManager {
             HailData.MODE_PRIVAPP_DISABLE -> HPackages.setAppDisabled(packageName, frozen)
             else -> false
         }
+        if (success) HShortcuts.updateShortcutFrozenState(packageName, frozen)
+        return success
+    }
 
     fun uninstallApp(packageName: String): Boolean {
         when {
