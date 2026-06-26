@@ -7,6 +7,9 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
 import android.graphics.drawable.Drawable
 import android.os.Build
 import androidx.appcompat.content.res.AppCompatResources
@@ -131,6 +134,33 @@ object HShortcuts {
 
     fun removeAllDynamicShortcuts() {
         ShortcutManagerCompat.removeAllDynamicShortcuts(app)
+    }
+
+    /**
+     * Update the icon of an existing pinned/dynamic shortcut (ID = packageName)
+     * to reflect frozen state. No-op if the shortcut doesn't exist.
+     */
+    fun updateShortcutFrozenState(packageName: String, frozen: Boolean) {
+        val applicationInfo = HPackages.getApplicationInfoOrNull(packageName) ?: return
+        val bitmap = IconPack.loadIcon(packageName) ?: iconLoader.loadIcon(applicationInfo)
+        val icon = if (frozen) toGrayscale(bitmap) else bitmap
+        val label = applicationInfo.loadLabel(app.packageManager)
+        val shortcut = ShortcutInfoCompat.Builder(app, packageName)
+            .setIcon(IconCompat.createWithBitmap(icon))
+            .setShortLabel(label)
+            .setIntent(HailApi.getIntentForPackage(HailApi.ACTION_LAUNCH, packageName))
+            .build()
+        ShortcutManagerCompat.updateShortcuts(app, listOf(shortcut))
+    }
+
+    private fun toGrayscale(bitmap: Bitmap): Bitmap {
+        val result = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint().apply {
+            colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
+        }
+        canvas.drawBitmap(bitmap, 0f, 0f, paint)
+        return result
     }
 
     private fun getDrawableIcon(drawable: Drawable): IconCompat =

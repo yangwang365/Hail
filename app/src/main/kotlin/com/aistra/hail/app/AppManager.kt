@@ -37,6 +37,7 @@ object AppManager {
                 setAppFrozen(it.packageName, frozen, mode) -> {
                     i++
                     name = it.name.toString()
+                    HShortcuts.updateShortcutFrozenState(it.packageName, frozen)
                 }
 
                 it.applicationInfo != null -> denied = true
